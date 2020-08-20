@@ -1,11 +1,13 @@
-import store from "./store";
+import ConfigureStore from "./ConfigureStore";
 import { bugAdded, bugRemoved } from "./actions";
 
+const store = ConfigureStore({});
 const unsubscribe = store.subscribe(() => {
   console.log("store changed!", store.getState());
 });
 
 store.dispatch(bugAdded("bug1"));
+store.dispatch({ type: "Archana Pradhan", payload: "frigging hell redux" });
 
 // store.dispatch({
 //   type: actions.BUG_REMOVED,

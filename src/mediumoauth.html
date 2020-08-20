@@ -1,0 +1,128 @@
+<html>
+  <body>
+    <p>
+      There’s a lot of scattered information on the internet for learning about
+      OAuth, what OpenID connect is, and how to use them in our modern SPA apps
+      infrastructure. Most of the guides I found were solely relying on the
+      corresponding client libraries. For example, using the JS SDK for
+      Microsoft Azure login increases the bundle size by 71KB( 18KB gzipped).
+      The same is true for other libs like Facebook SDK JS and Google’s gapi.
+      While looking for solutions when we were asked about adding a Google or FB
+      login button in our web app, we tend to find a framework-compatible
+      wrapper that does the magic for us, without even bothering to understand
+      what that library is doing internally. We simply look for guides or
+      tutorials on how to quickly integrate it without looking at the security
+      implications of choosing one strategy over the other. For example, we
+      retrieve the access token and unknowingly or knowingly gain access to the
+      user’s personal information.
+    </p>
+    <p>
+      See this, netmeds, a medicine delivery app, asks for permission to access
+      all the user’s email contacts, for what? And, sadly, gullible people won’t
+      even bother to note such things in a rush of signing into the app for
+      ordering medicines! The above case is on the user’s end. On the
+      developer’s end, we all tend to grab the access token even when we just
+      need to identify the user info, like email ID and basic profile info, then
+      we store the access token in the localstorage and send it in the request
+      header of every request. Storing an access token in client storage makes
+      it prone to script injection attacks. I’m sure you might have come across
+      situations while developing where you’ve asked your colleagues to share
+      their access token with you to log into the app. Anyone with your access
+      token can impersonate you and perform actions on your behalf and that
+      actually breaks the principle of C (Confidentiality) of the CIA Triad
+      model of information security, which says that the access to the resource
+      should be available to the right person only and no one should be able to
+      impersonate any other user.
+    </p>
+    <p>
+      Agenda We’ll be discussing: Authentication vs. authorization. OAuth 2.0
+      and its flows. Implementing authorization code grant flow with OpenID in a
+      React app with popup and redirection UX. Implementing OAuth flow on a
+      Node.js server using Koa. WebAuthn. Throughout the discussion, we won’t be
+      using any third-party library to understand the concepts fully.
+      Authentication vs. Authorization Authentication means that we only want to
+      identify the user who’s trying to log into an application. It’s a way of
+      identifying the users to make sure they are who they are claiming to be. A
+      simple example is a username/password. The naive assumption is that all
+      usernames and passwords are unique. If a person has these things, they can
+      claim to be a certain person. These days, we have two or multi-factor
+      authentication systems in place, they are a little annoying, however, but
+      very important for protecting your identity. Image for post Authorization,
+      on the other hand, is a way of “authorizing” the logged-in user to access
+      the protected resources. The authorization process generally succeeds
+      authentication. An example would be an API key through which you can
+      access the developer’s REST API. Or, simply something like a Google access
+      token to access Google resources, such as Google Drive. Once you have
+      gained the token during the authentication process, anyone with it can
+      access your Google Drive until it expires. A good analogy for
+      authorization is a movie ticket, particularly in the old days. Anyone with
+      a ticket can get into the movie theatre. One could sell it around to other
+      people because the identity of the person who bought it doesn’t matter
+      here. In the same way, concert tickets or passes can be sold to other
+      people easily because they are used only for checking the authorization to
+      enter the venue. On the other hand, authentication is like showing your
+      driving license to the police to confirm your identity, that you are
+      actually the person you are claiming to be. The cop will verify your
+      identity by checking your information, such as biological characteristics
+      and your photo, and can question if they doubt any of these things. In the
+      same way, while logging in through Google OAuth, Google is the cop outside
+      the airport trying to identify you by checking your username and password,
+      along with additional factors like MFA (Multi-Factor Authentication). When
+      you prove your identity with the above methods, the cop gives you an
+      “access token”, say, a virtual entry pass to the airport to access various
+      airport resources. OAuth 2.0 and OpenID These two complement each other.
+      OpenID is a protocol for authentication while OAuth is for authorization.
+      OpenID is an open standard and decentralized authentication protocol,
+      controlled by the OpenID foundation. OAuth is an open standard for access
+      delegation. OpenID Connect (OIDC) combines the features of OpenID and
+      OAuth, i.e. it does both authentication and authorization. OIDC uses
+      simple JSON Web Tokens (JWT), which you can obtain using flows conforming
+      to the OAuth 2.0 specifications. OAuth is directly related to OIDC as OIDC
+      is an authentication layer built on top of OAuth 2.0.
+    </p>
+    <p>
+      Google and other providers implement both OpenID and OAuth specs. Hence,
+      we can authenticate and authorize the user at the same time. For example,
+      if you chose to sign in to Auth0 using your Google account then you used
+      OIDC. Once you successfully authenticate with Google and authorize Auth0
+      to access your information, Google will send back to Auth0 information
+      about the user and the authentication performed. This information is
+      returned in a JSON Web Token (JWT). You’ll receive an access token and, if
+      requested, an ID token. OAuth 2.0 Flows There are various flows to achieve
+      authentication and authorization using OIDC. Below are the two main ones:
+      1. Implicit grant flow
+    </p>
+    <p>
+        import React, { FC, useEffect } from "react";
+import { RouteComponentProps } from "react-router";
+
+import { Google, Azure } from "./config";
+
+const LoginCallback: FC<RouteComponentProps> = ({ location }) => {
+  useEffect(() => {
+    const code = (location.search.match(/code=([^&]+)/) || [])[1];
+    const state = (location.search.match(/state=([^&]+)/) || [])[1];
+    const qParams = [
+      `code=${code}`,
+      `redirect_uri=${
+      state === "google" ? Google.REDIRECT_URI : Azure.REDIRECT_URI
+      }`,
+      `scope=${state === "google" ? Google.SCOPE : Azure.SCOPE}`
+    ].join("&");
+    fetch(`/api/auth-from-code/${state}?${qParams}`, {
+      credentials: "include"
+    })
+      .then(res => res.json())
+      .then(res => console.log(res))
+      .catch(console.error);
+  }, []);
+
+  return <p>
+    {location.search}
+  </p>;
+};
+
+export default LoginCallback;
+    </p>
+  </body>
+</html>
